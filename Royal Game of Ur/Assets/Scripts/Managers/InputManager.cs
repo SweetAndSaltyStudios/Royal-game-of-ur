@@ -19,6 +19,22 @@ namespace Sweet_And_Salty_Studios
             }
         }
 
+        public bool TouchDown
+        {
+            get
+            {
+                return Input.GetMouseButtonDown(0);
+            }
+        }
+
+        public bool TouchUp
+        {
+            get
+            {
+                return Input.GetMouseButtonUp(0);
+            }
+        }
+
         #endregion PROPERTIES
 
         #region UNITY_FUNCTIONS
@@ -27,6 +43,13 @@ namespace Sweet_And_Salty_Studios
 
         #region CUSTOM_FUNCTIONS
 
-        #endregion CUSTOM_FUNCTIONS
+        public Collider2D GetColliderFromTouchPosition(int layerValue)
+        {
+            var hitResult = Physics2D.OverlapPoint(Camera.main.ScreenToWorldPoint(Input.mousePosition), layerValue);
+
+            return hitResult;
+        }
+
+#endregion CUSTOM_FUNCTIONS
     }
 }

@@ -2,17 +2,11 @@
 
 namespace Sweet_And_Salty_Studios
 {
-    public class Tile : MonoBehaviour
+    public class Tile : Model
     {
         #region VARIABLES
 
         public TILE_TYPE TileType;
-
-        public Color RollAgainColor;
-
-        private Color defaultColor;
-
-        private SpriteRenderer spriteRenderer;
 
         #endregion VARIABLES
 
@@ -28,34 +22,37 @@ namespace Sweet_And_Salty_Studios
 
         #region UNITY_FUNCTIONS
 
-        private void Awake()
-        {
-            spriteRenderer = GetComponentInChildren<SpriteRenderer>();
-
-            if(TileType != TILE_TYPE.DEFAULT)
-            {
-                spriteRenderer.color = RollAgainColor;
-            }
-
-            defaultColor = spriteRenderer.color;
-        }
-
         #endregion UNITY_FUNCTIONS
 
         #region CUSTOM_FUNCTIONS
 
+        public void Initialize(Color32 color)
+        {
+            Base_Initialize();
+
+            defaultColor = color;
+
+            AnimateColor(color, 0.25f, false);
+        }
+
         public void PlaceStone(Stone stone)
         {
+            if(OccupiedStone)
+            {
+                Debug.LogError("!!!", gameObject);
+                return;
+            }
+
             OccupiedStone = stone;
 
-            spriteRenderer.color = Color.magenta;
+            AnimateColor(Color.grey, 0.15f, false);
         }
 
         public void ClearOccupiedStone()
         {         
             OccupiedStone = null;
 
-            spriteRenderer.color = defaultColor;
+            AnimateColor(defaultColor, 0.15f, false);
         }
 
         #endregion CUSTOM_FUNCTIONS

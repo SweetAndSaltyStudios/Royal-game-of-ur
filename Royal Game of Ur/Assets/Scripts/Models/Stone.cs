@@ -3,22 +3,11 @@ using UnityEngine;
 
 namespace Sweet_And_Salty_Studios
 {
-    public class Stone : MonoBehaviour
+    public class Stone : Model
     {
         #region VARIABLES
 
-        public Tile[] Path_1;
-        public Tile[] Path_2;
-
-        private int currentPathIndex = -1;
-
-        private SpriteRenderer spriteRenderer;
-
         private Collider2D hitCollider2D;
-
-        private Tile currentTile;
-
-        private Vector2 startingPosition;
 
         #endregion VARIABLES
 
@@ -30,135 +19,138 @@ namespace Sweet_And_Salty_Studios
             private set;
         }
 
+        public Tile CurrentTile
+        {
+            get;
+            private set;
+        }
+
+        public Vector2 StartPosition
+        {
+            get;
+            private set;
+        }
+
+        public int CurrentPathIndex
+        {
+            get;
+            private set;
+        } = -1;
+
+        public Color32 DefaultColor
+        {
+            get;
+            private set;
+        }
+
         #endregion PROPERTIES
 
         #region UNITY_FUNCTIONS
-
-        private void Awake()
-        {
-            hitCollider2D = GetComponent<Collider2D>();
-
-            spriteRenderer = GetComponentInChildren<SpriteRenderer>();          
-        }
 
         #endregion UNITY_FUNCTIONS
 
         #region CUSTOM_FUNCTIONS
 
-        public void Initialize(Player owner)
+        public void Initialize(Player owner, int contactLayerIndex, Color32 color)
         {
+            Base_Initialize();
+
+            hitCollider2D = GetComponent<Collider2D>();
+
             Owner = owner;
-            startingPosition = transform.position;
-            LeanTween.color(gameObject, owner.StoneColor, 0.25f);
+
+            gameObject.layer = contactLayerIndex;
+
+            StartPosition = transform.position;
+
+            DefaultColor = color;
+
+            AnimateColor(color, 0.25f, false);
         }
 
-        public bool HasValidMove(int totalDiceRoll)
+        public void ChangeInteractability(bool isInteractable)
         {
-            if(currentPathIndex + totalDiceRoll < Owner.Path.Length)
+            hitCollider2D.enabled = isInteractable;
+          
+            // We could animate objects that are disabled...         
+        }
+        
+        public IEnumerator IMove(int steps, Tile[] path, float movementSpeed = 0.25f)
+        {
+            var targetPosition = Vector2.zero;
+            var finalDestination = CurrentPathIndex + steps;
+            var aniamtionID = 0;
+
+            // Check if stone has already moved atleast once!
+
+            if(CurrentPathIndex > -1 && CurrentPathIndex < path.Length - 1)
             {
-                var destinationTile = Owner.Path[currentPathIndex + totalDiceRoll];
-
-                if(destinationTile.OccupiedStone && destinationTile.TileType != TILE_TYPE.DEFAULT)
-                {
-                    //Debug.Log("FOO !", gameObject);
-                    return false;
-                }
-
-                if(destinationTile.OccupiedStone && destinationTile.OccupiedStone.Owner.Index == Owner.Index)
-                {
-                    return false;
-                }              
+                CurrentTile = path[CurrentPathIndex];
             }
 
-            return true;
-        }
-
-        public void Move(int diceTotalValue, float delay = 0f)
-        {
-            StartCoroutine(IMove(diceTotalValue, delay));
-        }
-
-        public IEnumerator IMove(int diceTotalValue, float delay)
-        {
-            GameManager.Instance.IsAnimating = true;
-
-            yield return new WaitForSeconds(delay);
-
-            //hitCollider2D.enabled = false;
-            SetInteractability(false);
-
-            var destinationPathIndex = currentPathIndex + diceTotalValue;
-
-            if(currentTile)
+            if(CurrentTile != null && CurrentTile.OccupiedStone)
             {
-                currentTile.ClearOccupiedStone();
+                CurrentTile.ClearOccupiedStone();
             }
 
-            for(; currentPathIndex < destinationPathIndex;)
-            {
-                currentPathIndex++;
+            var destinationTile = path
+                [
+                    finalDestination > path.Length - 1
+                    ? path.Length - 1
+                    : finalDestination
+                ];
 
-                if(currentPathIndex >= Owner.Path.Length - 1)
+            while(CurrentPathIndex < finalDestination)
+            {
+                CurrentPathIndex++;
+
+                if(CurrentPathIndex > path.Length - 1)
                 {
-                    LeanTween.move(gameObject, Owner.Path[Owner.Path.Length - 1].transform.position, 0.25f)
-                        .setOnComplete(() => 
+                    targetPosition = path[path.Length - 1].transform.position;
+
+                    aniamtionID = LeanTween.move(gameObject, targetPosition, movementSpeed)
+                    .setOnComplete(() =>
+                    {
+                        LeanTween.scale(gameObject, Vector2.zero, movementSpeed)
+                        .setEaseInOutElastic()
+                        .setOnComplete(() =>
                         {
-                            LeanTween.color(gameObject, Color.gray, 0.25f);
-                            LeanTween.scale(gameObject, Vector2.zero, 0.25f)
-                            .setOnComplete(() =>
-                            {
-                                Owner.AddScore();
-                                gameObject.SetActive(false);
-                            });
+                            gameObject.SetActive(false);
                         });
-
-                    yield break;
+                    })
+                    .id;
+                   
+                    yield return new WaitWhile(() => LeanTween.isTweening(aniamtionID));            
                 }
-            
-                LeanTween.move(gameObject, Owner.Path[currentPathIndex].transform.position, 0.25f).setEaseInOutExpo();
-                yield return new WaitWhile(() => LeanTween.isTweening(gameObject));
-
-            }
-
-            currentTile = Owner.Path[destinationPathIndex];
-
-            if(currentTile.TileType == TILE_TYPE.ROLL_AGAIN)
-            {
-                // Refactor??
-                //Debug.LogError("We end up 'Roll Again Tile'.");
-                GameManager.Instance.CurrentPlayer.ShouldRollAgain = true;
-            }
-
-            if(currentTile.OccupiedStone)
-            {
-                if(currentTile.OccupiedStone.Owner.Index != Owner.Index)
+                else
                 {
-                    //currentTile.OccupiedStone.ReturnBackToStart();
-                    LeanTween.move(gameObject, startingPosition, 0.25f).setEaseInOutExpo();
-                    yield return new WaitWhile(() => LeanTween.isTweening(gameObject));
-                    currentPathIndex = -1;
-
-                    yield break;
+                    targetPosition = path[CurrentPathIndex].transform.position;
                 }
+
+                aniamtionID = LeanTween.move(gameObject, targetPosition, movementSpeed).id;
+
+                yield return new WaitWhile(() => LeanTween.isTweening(aniamtionID));
             }
 
-            currentTile.PlaceStone(this);
-            GameManager.Instance.IsAnimating = false;
+            CurrentTile = destinationTile;
 
-            //hitCollider2D.enabled = true;
+
+            if(CurrentTile.OccupiedStone && CurrentTile.OccupiedStone.Owner.Index != Owner.Index)
+            {
+                var stoneToReturn = CurrentTile.OccupiedStone;
+
+                targetPosition = stoneToReturn.StartPosition;
+
+                aniamtionID = LeanTween.move(stoneToReturn.gameObject, targetPosition, movementSpeed).id;
+
+                yield return new WaitWhile(() => LeanTween.isTweening(aniamtionID));
+
+                stoneToReturn.CurrentPathIndex = -1;
+                stoneToReturn.CurrentTile = null;
+            }
+
+            CurrentTile.PlaceStone(this);
         }
-
-        public void SetInteractability(bool interactable)
-        {
-            hitCollider2D.enabled = interactable;
-        }
-
-        //private void ReturnBackToStart()
-        //{
-        //    currentPathIndex = -1;
-
-        //    transform.position = startingPosition;
-        //}
 
         #endregion CUSTOM_FUNCTIONS
     }

@@ -3,6 +3,7 @@
     public enum TILE_TYPE
     {
         DEFAULT,
-        ROLL_AGAIN
+        ROLL_AGAIN,
+        GOAL
     }
 }

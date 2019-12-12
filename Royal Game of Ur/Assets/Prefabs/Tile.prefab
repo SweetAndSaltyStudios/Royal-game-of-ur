@@ -45,7 +45,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   TileType: 0
-  RollAgainColor: {r: 1, g: 0.95047814, b: 0.5235849, a: 1}
 --- !u!1 &8613351381324913860
 GameObject:
   m_ObjectHideFlags: 0

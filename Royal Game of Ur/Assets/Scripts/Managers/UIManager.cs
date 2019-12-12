@@ -1,5 +1,7 @@
-﻿using TMPro;
+﻿using System;
+using TMPro;
 using UnityEngine;
+using UnityEngine.Events;
 using UnityEngine.UI;
 
 namespace Sweet_And_Salty_Studios
@@ -17,7 +19,12 @@ namespace Sweet_And_Salty_Studios
         public TextMeshProUGUI Player_1_ScoreText;
         public TextMeshProUGUI Player_2_ScoreText;
         public TextMeshProUGUI MessageText;
+        public RectTransform MainMenuPanel;
+        public RectTransform SelectionPanel;
+        public RectTransform GamePanel;
+        public PlayerInfoDisplay PlayerInfoDisplayPrefab;
 
+        private const string defaultPlayerText = "Current Player: ";
         private const string defaultMessage = "No Legal Moves!";
 
         #endregion VARIABLES
@@ -30,71 +37,84 @@ namespace Sweet_And_Salty_Studios
 
         private void Awake()
         {
-            SetRollTheDiceButtonInteractableState(false);
-            MessageText.gameObject.SetActive(false);
+            SetRollTheDiceButton(false);
+
+            UpdateMessageText("");
+
+            SelectionPanel.gameObject.SetActive(false);
+            GamePanel.gameObject.SetActive(false);
+            MainMenuPanel.gameObject.SetActive(true);
         }
+
         #endregion UNITY_FUNCTIONS
 
         #region CUSTOM_FUNCTIONS
 
-        public void RollTheDiceButton_OnClick()
+        public void CreatePlayerInfoDisplay(PlayerData playerData, int index)
         {
-            GameManager.Instance.RollDice();
+            var selectionPanelContent = SelectionPanel.GetChild(0).GetChild(1).GetChild(1);
+            var playerInfoDisplay = Instantiate(PlayerInfoDisplayPrefab, selectionPanelContent);
+            playerInfoDisplay.Initialize(playerData, index);
+
+      
         }
 
-        public void SetRollTheDiceButtonInteractableState(bool interactable)
+        public void SetRollTheDiceButton(bool interactable)
         {
             RollTheDiceButton.interactable = interactable;
         }
 
-        public void UpdateDiceTotalResult(int diceTotalValue = -1)
+        public void RollTheDiceButton_OnClick()
         {
-            DiceResultText.text = diceTotalValue != -1 ? $"{diceTotalValue}" : "?";       
+            SetRollTheDiceButton(false);
+
+            GameManager.Instance.RollTheDice();
         }
 
-        public void UpdateCurrentPlayerText(int playerIndex)
+        public void UpdateCurrentPlayerText(int index)
         {
-            CurrentPlayerText.text = $"Current Player {playerIndex}"; 
+            CurrentPlayerText.text = $"{defaultPlayerText} {index}";
         }
 
-        public void UpdatePlayerScore(Player player)
+        public void UpdateDiceRollText(int totalDiceRoll)
         {
-            if(player.Index == 1)
+            DiceResultText.text = totalDiceRoll > -1 ? totalDiceRoll.ToString() : "?";
+        }
+
+        public void UpdateMessageText(string newMessage)
+        {
+            MessageText.text = newMessage;
+        }
+
+        public void UpdatePlayerScore(int playerIndex, int score)
+        {
+            switch(playerIndex)
             {
-                Player_1_ScoreText.text = player.Score.ToString();
+                case 1:
+
+                    Player_1_ScoreText.text = score.ToString();
+
+                    break;
+
+                case 2:
+
+                    Player_2_ScoreText.text = score.ToString();
+
+                    break;
+
+                default:
+
+                    break;
             }
-            else
-            {
-                Player_2_ScoreText.text = player.Score.ToString();
-            }
         }
 
-        public void ShowMessageText(string message)
+        public void ChangePlayerTypeToggle(PlayerInfoDisplay playerInfoDisplay)
         {
-            MessageText.text = message;
+            var isHumanPlayer = playerInfoDisplay.PlayerData.Type == PLAYER_TYPE.HUMAN;
 
-            MessageText.gameObject.SetActive(true);
+            playerInfoDisplay.PlayerData.ChangePlayerType(isHumanPlayer ? PLAYER_TYPE.AI : PLAYER_TYPE.HUMAN);
 
-            LeanTween.scale(MessageText.gameObject, Vector2.one, 0.25f)
-            .setFrom(Vector2.zero)
-            .setOnComplete(() =>
-            {
-                LeanTween.scale(MessageText.gameObject, Vector2.one * 1.1f, 0.25f)
-                .setLoopPingPong()
-                .setOnStart(() =>
-                {
-                    LeanTween.delayedCall(1f, () =>
-                    {
-                        LeanTween.cancel(MessageText.gameObject);
-                        LeanTween.scale(MessageText.gameObject, Vector2.zero, 0.25f)
-                        .setOnComplete(() =>
-                        {
-                            MessageText.gameObject.SetActive(false);
-                            MessageText.text = defaultMessage;
-                        });                     
-                    });                  
-                });             
-            });
+            //playerInfoDisplay.ChangePlayerTpeButton.isOn = isHumanPlayer;
         }
 
         #endregion CUSTOM_FUNCTIONS

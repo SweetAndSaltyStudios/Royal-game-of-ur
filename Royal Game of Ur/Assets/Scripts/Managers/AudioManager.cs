@@ -2,7 +2,13 @@
 
 namespace Sweet_And_Salty_Studios
 {
-    public class Player_AI : MonoBehaviour
+    public enum SOUND_TYPE
+    {
+        BACKGROUND_MUSIC,
+
+    }
+
+    public class AudioManager : MonoBehaviour
     {
         #region VARIABLES
 
